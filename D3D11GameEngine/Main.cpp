@@ -9,6 +9,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		while (wnd.ProcessMessage())
 		{
 			wnd.CalculateFps();
+			wnd.DrawScene();
 		}
 	}
 	catch (std::exception &exp)

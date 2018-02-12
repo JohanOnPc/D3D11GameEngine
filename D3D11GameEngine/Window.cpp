@@ -140,8 +140,8 @@ void Window::D3D11Init()
 
 	m_ScreenViewPort.TopLeftX = 0.0f;
 	m_ScreenViewPort.TopLeftY = 0.0f;
-	m_ScreenViewPort.Width =	static_cast<float>(m_Width);
-	m_ScreenViewPort.Height =	static_cast<float>(m_Height);
+	m_ScreenViewPort.Width    =	static_cast<float>(m_Width);
+	m_ScreenViewPort.Height   =	static_cast<float>(m_Height);
 	m_ScreenViewPort.MinDepth = 0.0f;
 	m_ScreenViewPort.MaxDepth = 1.0f;
 }
@@ -193,6 +193,67 @@ bool Window::ProcessMessage()
 	return false;
 }
 
+void Window::Resize()
+{
+	assert(m_DeviceContext);
+	assert(m_Device);
+	assert(m_SwapChain);
+
+	m_RenderTargetView.ReleaseAndGetAddressOf();
+	m_DepthStencilView.ReleaseAndGetAddressOf();
+	m_DepthStencilBuffer.ReleaseAndGetAddressOf();
+
+	ComPtr<ID3D11Texture2D> BackBuffer;
+
+	m_SwapChain->ResizeBuffers(1, m_Width, m_Height, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
+	m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(BackBuffer.GetAddressOf()));
+	m_Device->CreateRenderTargetView(BackBuffer.Get(), 0, m_RenderTargetView.GetAddressOf());
+
+	D3D11_TEXTURE2D_DESC DepthStencilDesc;
+	DepthStencilDesc.Width =				m_Width;
+	DepthStencilDesc.Height =				m_Height;
+	DepthStencilDesc.MipLevels =			1;
+	DepthStencilDesc.ArraySize =			1;
+	DepthStencilDesc.Format =				DXGI_FORMAT_D24_UNORM_S8_UINT;
+	DepthStencilDesc.SampleDesc.Count =		4;
+	DepthStencilDesc.SampleDesc.Quality =	MsaaQuality - 1;
+	DepthStencilDesc.Usage =				D3D11_USAGE_DEFAULT;
+	DepthStencilDesc.BindFlags =			D3D11_BIND_DEPTH_STENCIL;
+	DepthStencilDesc.CPUAccessFlags =		0;
+	DepthStencilDesc.MiscFlags =			0;
+
+	m_Device->CreateTexture2D(&DepthStencilDesc, 0, m_DepthStencilBuffer.GetAddressOf());
+	m_Device->CreateDepthStencilView(m_DepthStencilBuffer.Get(), 0, m_DepthStencilView.GetAddressOf());
+	m_DeviceContext->OMSetRenderTargets(1, m_RenderTargetView.GetAddressOf(), m_DepthStencilView.Get());
+
+	m_ScreenViewPort.TopLeftX = 0;
+	m_ScreenViewPort.TopLeftY = 0;
+	m_ScreenViewPort.Width    =	static_cast<float>(m_Width);
+	m_ScreenViewPort.Height   =	static_cast<float>(m_Height);
+	m_ScreenViewPort.MinDepth = 0.0f;
+	m_ScreenViewPort.MaxDepth = 1.0f;
+
+	m_DeviceContext->RSSetViewports(1, &m_ScreenViewPort);
+}
+
+void Window::DrawScene()
+{
+	assert(m_DeviceContext);
+	assert(m_SwapChain);
+
+	const float color[] = { 0.196078f, 0.8f, 0.196078f, 0.0f };
+
+	m_DeviceContext->ClearRenderTargetView(m_RenderTargetView.Get(), reinterpret_cast<const float*>(&color));
+	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+	m_SwapChain->Present(0, 0);
+}
+
+float Window::GetAspectRatio()
+{
+	return static_cast<float>(m_Width) / m_Height;
+}
+
 LRESULT Window::WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
@@ -226,11 +287,16 @@ LRESULT Window::WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
 		m_Paused = false;
 		m_Resizing = false;
 		m_Timer.Start();
-		//function Resize();
+		Resize();
 		return 0;
 
 	case WM_MENUCHAR:
 		return MAKELRESULT(0, MNC_CLOSE);
+
+	case WM_GETMINMAXINFO:
+		((MINMAXINFO*)lParam)->ptMinTrackSize.x = 200;
+		((MINMAXINFO*)lParam)->ptMinTrackSize.y = 200;
+		return 0;
 	}
 
 	return DefWindowProc(hwnd, message, wParam, lParam);

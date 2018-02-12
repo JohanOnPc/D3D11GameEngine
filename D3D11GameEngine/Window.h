@@ -22,21 +22,24 @@ public:
 	Window(HINSTANCE, int, std::wstring);
 	bool	ProcessMessage();
 	void	CalculateFps();
+	void	DrawScene();
 	LRESULT WindowProc(HWND, UINT, WPARAM, LPARAM);
 
 private:
-	void					WinInit();
-	void					D3D11Init();
+	void	WinInit();
+	void	D3D11Init();
+	void	Resize();
+	float	GetAspectRatio();
 
 private:
 	//Win32 variables
-	HWND		m_hwnd;
-	HINSTANCE	m_hInstance;
-	int			m_nCmdShow;
-	int			m_Width, m_Height;
-	std::wstring m_MainWindowTitle;
+	HWND			m_hwnd;
+	HINSTANCE		m_hInstance;
+	int				m_nCmdShow;
+	int				m_Width, m_Height;
+	std::wstring	m_MainWindowTitle;
 
-	//D3D11 variables
+	//D3D11 Pointers
 	Microsoft::WRL::ComPtr<IDXGISwapChain>			m_SwapChain;
 	Microsoft::WRL::ComPtr<ID3D11Device>			m_Device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext>		m_DeviceContext;
