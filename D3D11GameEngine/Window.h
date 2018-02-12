@@ -11,7 +11,6 @@
 #include <string>
 #include <sstream>
 
-#include "D3D11Utils.h"
 #include "Timer.h"
 
 #pragma comment (lib, "d3d11.lib")
